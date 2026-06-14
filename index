@@ -1,1 +1,516 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEAG - Lista de Compras</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d0f;--surface:#16161a;--border:#2a2a32;--accent:#c8f135;--text:#f0f0f0;--muted:#666;--r:8px;
+--comprado:#1a3a1a;--comprado-b:#2d6e2d;--comprado-t:#4caf50;
+--faltando:#3a3a00;--faltando-b:#7a7a00;--faltando-t:#ffd600;
+--naotem:#3a0000;--naotem-b:#7a0000;--naotem-t:#ff4444;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;padding:16px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+h1{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800}
+h1 span{color:var(--accent)}
+.subtotal{font-size:.7rem;color:var(--muted);text-align:right}
+.subtotal strong{display:block;font-size:.85rem;color:var(--accent);font-family:'Syne',sans-serif}
+.tabs{display:flex;gap:4px;margin:14px 0}
+.tab{flex:1;padding:7px 4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.tab.ativo{border-color:var(--accent);color:var(--accent)}
+.secao{display:none}.secao.ativo{display:block}
+/* TITULO EDITAVEL */
+.titulo-lista-wrap{display:flex;align-items:center;gap:6px;margin-bottom:2px;min-height:22px}
+.titulo-lista-texto{font-size:.75rem;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;border-bottom:1px dashed #c8f13566;padding-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.titulo-lista-texto:hover{border-color:var(--accent)}
+.titulo-lista-input{font-size:.75rem;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;background:transparent;border:none;border-bottom:1px solid var(--accent);outline:none;width:100%;min-width:0;padding-bottom:1px}
+.titulo-lista-edit-btn{font-size:.65rem;color:var(--muted);cursor:pointer;flex-shrink:0;background:none;border:none;padding:0}
+.titulo-lista-save-btn{font-size:.65rem;color:var(--accent);cursor:pointer;flex-shrink:0;background:none;border:none;padding:0;font-family:'Syne',sans-serif;font-weight:700}
+/* PROGRESSO */
+.prog-bar{background:var(--surface);border-radius:20px;height:6px;margin-bottom:16px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:20px;transition:width .3s}
+/* LISTA */
+.lista{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.item{border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:8px;transition:all .25s;border:1px solid var(--border);background:var(--surface)}
+.item.comprado{background:var(--comprado);border-color:var(--comprado-b)}
+.item.faltando{background:var(--faltando);border-color:var(--faltando-b)}
+.item.naotem{background:var(--naotem);border-color:var(--naotem-b);opacity:.8}
+.item.arquivado{display:none}
+.item-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .2s}
+.item.comprado .item-check{background:var(--comprado-b);border-color:var(--comprado-t);color:var(--comprado-t)}
+.item.faltando .item-check{background:var(--faltando-b);border-color:var(--faltando-t);color:var(--faltando-t)}
+.item.naotem .item-check{background:var(--naotem-b);border-color:var(--naotem-t);color:var(--naotem-t)}
+.item-info{flex:1;min-width:0}
+.item-nome{font-size:.85rem}
+.item-qtd{font-size:.62rem;color:var(--muted);margin-top:2px}
+.item-novo{font-size:.55rem;color:var(--accent);margin-left:4px;vertical-align:middle}
+.item-acoes{display:flex;gap:4px;flex-shrink:0}
+.btn-status{background:none;border:1px solid var(--border);border-radius:6px;font-size:.6rem;padding:3px 7px;cursor:pointer;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap}
+.btn-arq{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px 4px}
+/* FORM */
+.fsec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.ftitle{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px}
+.frow{display:flex;gap:8px;margin-bottom:8px}
+input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:.85rem;padding:10px 12px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:none;height:120px;font-size:.8rem}
+.btnadd{background:var(--accent);color:#0d0d0f;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;padding:11px;cursor:pointer;width:100%;margin-top:4px}
+/* LISTAS SALVAS */
+.lista-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.lista-card.ativa{border-color:var(--accent)}
+.lc-nome{font-size:.85rem;font-weight:700}
+.lc-meta{font-size:.6rem;color:var(--muted);margin-top:2px}
+.lc-acoes{display:flex;gap:6px}
+.btn-abrir{background:var(--accent);color:#0d0d0f;border:none;border-radius:6px;font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;padding:5px 10px;cursor:pointer}
+.btn-del{background:none;border:1px solid #ff444444;border-radius:6px;color:#ff6666;font-family:'DM Mono',monospace;font-size:.7rem;padding:5px 10px;cursor:pointer}
+/* BOTOES ACAO */
+.btnrow{display:flex;gap:8px;margin-top:8px}
+.bwpp{display:flex;align-items:center;justify-content:center;gap:6px;background:#25d366;color:#fff;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;padding:12px 8px;flex:1;cursor:pointer}
+.breset{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:var(--r);font-family:'DM Mono',monospace;font-size:.75rem;padding:12px 8px;flex:1;cursor:pointer}
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:.8rem}
+.legenda{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-size:.6rem;color:var(--muted)}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+/* BADGE TIPO */
+.badge-tipo{display:inline-block;font-size:.5rem;text-transform:uppercase;letter-spacing:.8px;border-radius:4px;padding:2px 5px;margin-left:6px;font-family:'DM Mono',monospace;vertical-align:middle;background:#c8f13522;color:var(--accent);border:1px solid #c8f13544}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#128722; <span>CEAG</span></h1>
+  <div class="subtotal"><span>progresso</span><strong id="prog-txt">0 / 0</strong></div>
+</header>
+
+<!-- TITULO EDITAVEL DA LISTA -->
+<div class="titulo-lista-wrap" id="titulo-wrap">
+  <span class="titulo-lista-texto" id="titulo-texto" onclick="iniciarEdicaoTitulo()" title="Toque para editar o nome da lista"></span>
+  <button class="titulo-lista-edit-btn" onclick="iniciarEdicaoTitulo()" id="btn-editar-titulo" title="Editar nome">&#9998;</button>
+</div>
+<div class="titulo-lista-wrap" id="titulo-edit-wrap" style="display:none">
+  <input class="titulo-lista-input" type="text" id="titulo-input" placeholder="Nome da lista..." onkeydown="tituloKeydown(event)"/>
+  <button class="titulo-lista-save-btn" onclick="salvarTitulo()">OK</button>
+</div>
+
+<div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+
+<div class="tabs">
+  <div class="tab ativo" onclick="setTab('compra')">Compra</div>
+  <div class="tab" onclick="setTab('editar')">Editar</div>
+  <div class="tab" onclick="setTab('listas')">Listas</div>
+</div>
+
+<!-- ABA COMPRA -->
+<div class="secao ativo" id="tab-compra">
+  <div class="legenda">
+    <div class="leg"><div class="leg-dot" style="background:#4caf50"></div>Comprado</div>
+    <div class="leg"><div class="leg-dot" style="background:#ffd600"></div>Faltando</div>
+    <div class="leg"><div class="leg-dot" style="background:#ff4444"></div>Nao tinha</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--border)"></div>Pendente</div>
+  </div>
+  <div class="lista" id="lista-compra"></div>
+  <div class="fsec" style="margin-top:8px">
+    <div class="ftitle">+ novo item na hora</div>
+    <div class="frow">
+      <input type="text" id="novo-nome" placeholder="Nome do item"/>
+      <input type="number" id="novo-qtd" placeholder="Qtd" min="1" style="max-width:70px"/>
+    </div>
+    <button class="btnadd" onclick="addNovoItem()">NOVO ITEM</button>
+  </div>
+  <div class="btnrow">
+    <button class="bwpp" onclick="exportarWpp()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.047L.786 23.207a.5.5 0 0 0 .619.619l4.195-1.498A11.953 11.953 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.006-1.371l-.36-.214-3.724 1.329 1.353-3.648-.235-.374A9.818 9.818 0 0 1 12 2.182c5.426 0 9.818 4.392 9.818 9.818 0 5.427-4.392 9.818-9.818 9.818z"/></svg>
+      Resumo WhatsApp
+    </button>
+    <button class="breset" onclick="resetarCompra()">Resetar</button>
+  </div>
+</div>
+
+<!-- ABA EDITAR -->
+<div class="secao" id="tab-editar">
+  <div class="fsec">
+    <div class="ftitle">editar lista atual</div>
+    <div class="frow">
+      <input type="text" id="ed-nome" placeholder="Nome do item"/>
+      <input type="number" id="ed-qtd" placeholder="Qtd" min="1" style="max-width:70px"/>
+    </div>
+    <button class="btnadd" onclick="edAddItem()">ADICIONAR ITEM</button>
+  </div>
+  <div class="fsec">
+    <div class="ftitle">itens da lista</div>
+    <div id="ed-lista"></div>
+  </div>
+</div>
+
+<!-- ABA LISTAS -->
+<div class="secao" id="tab-listas">
+  <div class="fsec">
+    <div class="ftitle">nova lista</div>
+    <div class="frow">
+      <input type="text" id="nl-nome" placeholder="Ex: Compra Mercado, Compra Natal, Feira..."/>
+    </div>
+    <textarea id="nl-itens" placeholder="Cole ou digite os itens, um por linha:&#10;Couve&#10;Cebola&#10;Alho&#10;Tomate"></textarea>
+    <button class="btnadd" onclick="criarLista()">CRIAR LISTA</button>
+  </div>
+  <div class="fsec">
+    <div class="ftitle">listas salvas</div>
+    <div id="listas-salvas"></div>
+  </div>
+</div>
+
+<script>
+var listaAtivaId = null;
+var modoEdicaoTitulo = false;
+
+function slistas(l){localStorage.setItem('ceag_listas',JSON.stringify(l));}
+function llistas(){var r=localStorage.getItem('ceag_listas');return r?JSON.parse(r):[];}
+function sativa(id){localStorage.setItem('ceag_ativa',String(id));}
+function lativa(){return localStorage.getItem('ceag_ativa');}
+
+function setTab(nome){
+  var tabs=document.querySelectorAll('.tab');
+  var idx=['compra','editar','listas'].indexOf(nome);
+  tabs.forEach(function(t){t.classList.remove('ativo');});
+  if(idx>=0)tabs[idx].classList.add('ativo');
+  document.querySelectorAll('.secao').forEach(function(s){s.classList.remove('ativo');});
+  document.getElementById('tab-'+nome).classList.add('ativo');
+  if(nome==='compra')renderCompra();
+  if(nome==='editar')renderEditar();
+  if(nome==='listas')renderListas();
+}
+
+function getListaAtiva(){
+  var listas=llistas();
+  var id=lativa();
+  if(!id&&listas.length>0){id=listas[0].id;sativa(id);}
+  return listas.find(function(l){return String(l.id)===String(id);})||null;
+}
+
+function salvarListaAtiva(lista){
+  var listas=llistas();
+  var idx=listas.findIndex(function(l){return String(l.id)===String(lista.id);});
+  if(idx>=0)listas[idx]=lista;
+  slistas(listas);
+}
+
+// ---- EDICAO DO TITULO ----
+function iniciarEdicaoTitulo(){
+  var lista=getListaAtiva();
+  if(!lista)return;
+  modoEdicaoTitulo=true;
+  document.getElementById('titulo-wrap').style.display='none';
+  document.getElementById('titulo-edit-wrap').style.display='flex';
+  var inp=document.getElementById('titulo-input');
+  inp.value=lista.nome;
+  inp.focus();
+  inp.select();
+}
+
+function salvarTitulo(){
+  var novo=document.getElementById('titulo-input').value.trim();
+  if(!novo){fecharEdicaoTitulo();return;}
+  var lista=getListaAtiva();
+  if(!lista){fecharEdicaoTitulo();return;}
+  lista.nome=novo;
+  salvarListaAtiva(lista);
+  fecharEdicaoTitulo();
+  renderTitulo();
+}
+
+function fecharEdicaoTitulo(){
+  modoEdicaoTitulo=false;
+  document.getElementById('titulo-wrap').style.display='flex';
+  document.getElementById('titulo-edit-wrap').style.display='none';
+}
+
+function tituloKeydown(e){
+  if(e.key==='Enter')salvarTitulo();
+  if(e.key==='Escape')fecharEdicaoTitulo();
+}
+
+function renderTitulo(){
+  var lista=getListaAtiva();
+  var textoEl=document.getElementById('titulo-texto');
+  var wrapEl=document.getElementById('titulo-wrap');
+  if(!lista){
+    textoEl.textContent='Nenhuma lista ativa';
+    document.getElementById('btn-editar-titulo').style.display='none';
+    return;
+  }
+  document.getElementById('btn-editar-titulo').style.display='inline';
+  textoEl.textContent=lista.nome;
+}
+
+// ---- RENDER COMPRA ----
+function renderCompra(){
+  renderTitulo();
+  var lista=getListaAtiva();
+  if(!lista){
+    document.getElementById('lista-compra').innerHTML='<div class="empty">Crie uma lista na aba Listas para comecar.</div>';
+    document.getElementById('prog-txt').textContent='0 / 0';
+    document.getElementById('prog-fill').style.width='0%';
+    return;
+  }
+  var itens=lista.itens.filter(function(it){return !it.arquivado;});
+  var total=itens.length;
+  var comprados=itens.filter(function(it){return it.status==='comprado';}).length;
+  document.getElementById('prog-txt').textContent=comprados+' / '+total;
+  document.getElementById('prog-fill').style.width=(total>0?Math.round(comprados/total*100):0)+'%';
+
+  var ordem={faltando:0,pendente:1,comprado:2,naotem:3};
+  var sorted=itens.slice().sort(function(a,b){
+    return (ordem[a.status]||1)-(ordem[b.status]||1);
+  });
+
+  var el=document.getElementById('lista-compra');
+  if(sorted.length===0){el.innerHTML='<div class="empty">Lista vazia.</div>';return;}
+
+  el.innerHTML=sorted.map(function(it){
+    var cls='item';
+    if(it.status==='comprado')cls+=' comprado';
+    else if(it.status==='faltando')cls+=' faltando';
+    else if(it.status==='naotem')cls+=' naotem';
+    var checkSymbol=it.status==='comprado'?'&#10003;':it.status==='faltando'?'!':it.status==='naotem'?'&#10007;':'';
+    var qtdTxt=it.qtd&&it.qtd>1?'<div class="item-qtd">Qtd: '+it.qtd+'</div>':'';
+    var novoTag=it.novo?'<span class="item-novo">[+novo]</span>':'';
+    var statusBtn='';
+    if(it.status==='pendente'){
+      statusBtn='<button class="btn-status" onclick="ciclarStatus(\''+it.id+'\')" style="color:#ffd600;border-color:#7a7a00">! faltando</button>';
+    }else if(it.status==='faltando'){
+      statusBtn='<button class="btn-status" onclick="ciclarStatus(\''+it.id+'\')" style="color:#ff4444;border-color:#7a0000">x nao tinha</button>';
+    }else if(it.status==='naotem'){
+      statusBtn='<button class="btn-status" onclick="ciclarStatus(\''+it.id+'\')" style="color:var(--muted)">reset</button>';
+    }
+    return '<div class="'+cls+'" id="it-'+it.id+'">'
+      +'<div class="item-check" onclick="toggleComprado(\''+it.id+'\')">'+checkSymbol+'</div>'
+      +'<div class="item-info">'
+      +'<div class="item-nome">'+it.nome+novoTag+'</div>'
+      +qtdTxt
+      +'</div>'
+      +'<div class="item-acoes">'+statusBtn+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleComprado(id){
+  var lista=getListaAtiva();if(!lista)return;
+  var it=lista.itens.find(function(x){return String(x.id)===String(id);});
+  if(!it)return;
+  it.status=it.status==='comprado'?'pendente':'comprado';
+  salvarListaAtiva(lista);
+  renderCompra();
+}
+
+function ciclarStatus(id){
+  var lista=getListaAtiva();if(!lista)return;
+  var it=lista.itens.find(function(x){return String(x.id)===String(id);});
+  if(!it)return;
+  if(it.status==='pendente')it.status='faltando';
+  else if(it.status==='faltando')it.status='naotem';
+  else it.status='pendente';
+  salvarListaAtiva(lista);
+  renderCompra();
+}
+
+function addNovoItem(){
+  var nome=document.getElementById('novo-nome').value.trim();
+  var qtd=parseInt(document.getElementById('novo-qtd').value)||1;
+  if(!nome){alert('Informe o item.');return;}
+  var lista=getListaAtiva();if(!lista){alert('Crie uma lista primeiro.');return;}
+  var existe=lista.itens.find(function(it){return normalizar(it.nome)===normalizar(nome)&&!it.arquivado;});
+  if(existe&&!confirm('"'+nome+'" ja esta na lista. Adicionar mesmo assim?'))return;
+  lista.itens.push({id:Date.now(),nome:nome,qtd:qtd,status:'pendente',novo:true,arquivado:false});
+  salvarListaAtiva(lista);
+  document.getElementById('novo-nome').value='';
+  document.getElementById('novo-qtd').value='';
+  renderCompra();
+}
+
+function resetarCompra(){
+  if(!confirm('Resetar todos os status para pendente?'))return;
+  var lista=getListaAtiva();if(!lista)return;
+  lista.itens.forEach(function(it){it.status='pendente';});
+  salvarListaAtiva(lista);
+  renderCompra();
+}
+
+// ---- EDITAR ----
+function renderEditar(){
+  var lista=getListaAtiva();
+  var el=document.getElementById('ed-lista');
+  if(!lista){el.innerHTML='<div class="empty">Nenhuma lista ativa.</div>';return;}
+  if(lista.itens.length===0){el.innerHTML='<div class="empty">Lista vazia.</div>';return;}
+  el.innerHTML=lista.itens.map(function(it){
+    var arqStyle=it.arquivado?'opacity:.4':'';
+    return '<div class="item" style="'+arqStyle+'">'
+      +'<div class="item-info">'
+      +'<div class="item-nome">'+it.nome+(it.qtd>1?' x'+it.qtd:'')+'</div>'
+      +'</div>'
+      +'<div class="item-acoes">'
+      +'<button class="btn-status" onclick="toggleArquivar(\''+it.id+'\')" style="color:var(--muted)">'+(it.arquivado?'restaurar':'arquivar')+'</button>'
+      +'<button class="btn-arq" onclick="edRemItem(\''+it.id+'\')">&#128465;</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleArquivar(id){
+  var lista=getListaAtiva();if(!lista)return;
+  var it=lista.itens.find(function(x){return String(x.id)===String(id);});
+  if(it)it.arquivado=!it.arquivado;
+  salvarListaAtiva(lista);
+  renderEditar();
+}
+
+function edRemItem(id){
+  if(!confirm('Remover item?'))return;
+  var lista=getListaAtiva();if(!lista)return;
+  lista.itens=lista.itens.filter(function(x){return String(x.id)!==String(id);});
+  salvarListaAtiva(lista);
+  renderEditar();
+}
+
+function edAddItem(){
+  var nome=document.getElementById('ed-nome').value.trim();
+  var qtd=parseInt(document.getElementById('ed-qtd').value)||1;
+  if(!nome){alert('Informe o item.');return;}
+  var lista=getListaAtiva();if(!lista){alert('Crie uma lista primeiro.');return;}
+  var existe=lista.itens.find(function(it){return normalizar(it.nome)===normalizar(nome)&&!it.arquivado;});
+  if(existe&&!confirm('"'+nome+'" ja esta na lista. Adicionar mesmo assim?'))return;
+  lista.itens.push({id:Date.now(),nome:nome,qtd:qtd,status:'pendente',novo:false,arquivado:false});
+  salvarListaAtiva(lista);
+  document.getElementById('ed-nome').value='';
+  document.getElementById('ed-qtd').value='';
+  renderEditar();
+}
+
+// ---- LISTAS ----
+function normalizar(s){return s.trim().toLowerCase().replace(/\s+/g,' ');}
+
+function criarLista(){
+  var nome=document.getElementById('nl-nome').value.trim();
+  var texto=document.getElementById('nl-itens').value.trim();
+  if(!nome){alert('Informe o nome da lista.');return;}
+  var itens=[];var duplicados=0;var vistos={};
+  if(texto){
+    texto.split('\n').forEach(function(linha){
+      var l=linha.trim();
+      if(!l)return;
+      var key=normalizar(l);
+      if(vistos[key]){duplicados++;return;}
+      vistos[key]=1;
+      itens.push({id:Date.now()+Math.random(),nome:l,qtd:1,status:'pendente',novo:false,arquivado:false});
+    });
+  }
+  if(duplicados>0)alert(duplicados+' item(ns) duplicado(s) removido(s) automaticamente.');
+  var listas=llistas();
+  var nova={id:Date.now(),nome:nome,itens:itens,ts:Date.now()};
+  listas.unshift(nova);
+  slistas(listas);
+  sativa(nova.id);
+  document.getElementById('nl-nome').value='';
+  document.getElementById('nl-itens').value='';
+  renderListas();
+  alert('Lista "'+nome+'" criada! Abrindo...');
+  setTab('compra');
+}
+
+function renderListas(){
+  var listas=llistas();
+  var el=document.getElementById('listas-salvas');
+  var ativaId=lativa();
+  if(listas.length===0){el.innerHTML='<div class="empty">Nenhuma lista salva.</div>';return;}
+  el.innerHTML=listas.map(function(l){
+    var ativa=String(l.id)===String(ativaId);
+    var total=l.itens.filter(function(it){return !it.arquivado;}).length;
+    return '<div class="lista-card'+(ativa?' ativa':'')+'">'
+      +'<div>'
+      +'<div class="lc-nome">'+(ativa?'&#9654; ':'')+l.nome+'</div>'
+      +'<div class="lc-meta">'+total+' itens'+(ativa?' - ATIVA':'')+'</div>'
+      +'</div>'
+      +'<div class="lc-acoes">'
+      +(ativa?'':'<button class="btn-abrir" onclick="ativarLista('+l.id+')">Abrir</button>')
+      +'<button class="btn-del" onclick="deletarLista('+l.id+')">del</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function ativarLista(id){
+  sativa(id);
+  renderListas();
+  setTab('compra');
+}
+
+function deletarLista(id){
+  if(!confirm('Deletar esta lista?'))return;
+  var listas=llistas().filter(function(l){return l.id!==id;});
+  slistas(listas);
+  if(String(lativa())===String(id)){
+    localStorage.removeItem('ceag_ativa');
+  }
+  renderListas();
+}
+
+// ---- WHATSAPP ----
+function exportarWpp(){
+  var lista=getListaAtiva();
+  if(!lista){alert('Nenhuma lista ativa.');return;}
+  var hoje=new Date().toLocaleDateString('pt-BR');
+  var itens=lista.itens.filter(function(it){return !it.arquivado;});
+  var comprados=itens.filter(function(it){return it.status==='comprado';});
+  var faltando=itens.filter(function(it){return it.status==='faltando';});
+  var naotem=itens.filter(function(it){return it.status==='naotem';});
+  var novos=itens.filter(function(it){return it.novo&&it.status==='comprado';});
+
+  var msg='COMPRAS: '+lista.nome+' - '+hoje+'\n\n';
+
+  if(comprados.length>0){
+    msg+='COMPRADO ('+comprados.length+'):\n';
+    comprados.forEach(function(it){
+      msg+='  + '+it.nome+(it.qtd>1?' x'+it.qtd:'')+(it.novo?' [novo]':'')+'\n';
+    });
+    msg+='\n';
+  }
+  if(faltando.length>0){
+    msg+='FALTOU ('+faltando.length+'):\n';
+    faltando.forEach(function(it){
+      msg+='  ! '+it.nome+(it.qtd>1?' x'+it.qtd:'')+'\n';
+    });
+    msg+='\n';
+  }
+  if(naotem.length>0){
+    msg+='NAO TINHA ('+naotem.length+'):\n';
+    naotem.forEach(function(it){
+      msg+='  x '+it.nome+(it.qtd>1?' x'+it.qtd:'')+'\n';
+    });
+    msg+='\n';
+  }
+  if(novos.length>0){
+    msg+='ADICIONADO NA HORA:\n';
+    novos.forEach(function(it){
+      msg+='  * '+it.nome+(it.qtd>1?' x'+it.qtd:'')+'\n';
+    });
+    msg+='\n';
+  }
+  var pendentes=itens.filter(function(it){return it.status==='pendente';});
+  msg+='Progresso: '+comprados.length+'/'+itens.length+' itens';
+  if(pendentes.length>0)msg+=' ('+pendentes.length+' pendentes)';
+
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ---- INIT ----
+var ativaInicial=lativa();
+if(!ativaInicial){
+  var ceagItens=['Couve','Cebola','Alho','Coentro','Tomate','Repolho','Pepino','Batata','Alface','Beterraba','Tempero baiano sem pimenta'];
+  var ceag={id:Date.now(),nome:'CEAG',itens:ceagItens.map(function(n,i){return {id:i+1,nome:n,qtd:1,status:'pendente',novo:false,arquivado:false};}),ts:Date.now()};
+  slistas([ceag]);
+  sativa(ceag.id);
+}
+renderCompra();
+</script>
+</body>
+</html>
